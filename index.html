@@ -4,42 +4,51 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Education - TEPS Mode</title>
+    <title>English Education - Multi Mode</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; }
-        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { width: 90%; max-width: 600px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; }
-        h1 { color: var(--primary); font-size: 1.6rem; margin-bottom: 5px; letter-spacing: -1px; }
-        .tag { display: inline-block; background: var(--primary); color: white; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; margin-bottom: 30px; }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { width: 90%; max-width: 600px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; }
         
+        /* 시트 선택창 스타일 */
+        .select-box { 
+            width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #eee; 
+            font-size: 1rem; margin-bottom: 20px; outline: none; cursor: pointer;
+            background-color: #fff; color: var(--primary); font-weight: bold;
+        }
+        .select-box:focus { border-color: var(--accent); }
+
+        .tag { display: inline-block; background: var(--primary); color: white; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; margin-bottom: 20px; }
         .sentence-card { 
             min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
-            margin-bottom: 30px; padding: 30px; border-radius: 15px; background: #ffffff; 
+            margin-bottom: 25px; padding: 30px; border-radius: 15px; background: #ffffff; 
             border: 1px solid #eee; cursor: pointer; transition: all 0.2s;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
         }
-        .sentence-card:hover { border-color: var(--accent); background: #fdfdfd; }
-        .sentence-card:active { transform: scale(0.98); }
-
-        .english { font-size: 1.45rem; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
-        .korean { font-size: 1.15rem; color: #7f8c8d; margin-top: 25px; font-weight: 500; display: none; padding-top: 20px; border-top: 1px dashed #ddd; width: 100%; }
+        .sentence-card:hover { border-color: var(--accent); }
+        .english { font-size: 1.4rem; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
+        .korean { font-size: 1.1rem; color: #7f8c8d; margin-top: 25px; display: none; padding-top: 20px; border-top: 1px dashed #ddd; width: 100%; }
         
         .btn-next { 
-            width: 100%; padding: 20px; font-size: 1.2rem; font-weight: bold; border: none; 
+            width: 100%; padding: 18px; font-size: 1.1rem; font-weight: bold; border: none; 
             border-radius: 12px; cursor: pointer; transition: 0.3s; 
             background-color: var(--accent); color: white;
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
         }
         .btn-next:hover { background-color: #2980b9; transform: translateY(-2px); }
-        
-        .hint { margin-top: 15px; font-size: 0.9rem; color: #bbb; }
+        .hint { margin-top: 15px; font-size: 0.85rem; color: #bbb; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>English Education</h1>
-    <div class="tag">TEPS COURSE</div>
+    <select id="sheetSelect" class="select-box" onchange="changeSheet()">
+        <option value="SPEAK">SPEAK 모드</option>
+        <option value="TEPS">TEPS 모드</option>
+        <option value="CONV">회화 모드</option>
+    </select>
+
+    <div id="modeTag" class="tag">SPEAK COURSE</div>
     
     <div class="sentence-card" onclick="toggleAnswer()">
         <div id="enText" class="english">데이터를 불러오는 중...</div>
@@ -48,20 +57,36 @@
 
     <button class="btn-next" onclick="nextSentence()">NEXT SENTENCE</button>
     
-    <p class="hint">💡 문장 카드를 터치하면 해석이 나타납니다.</p>
-    <div id="countInfo" style="font-size: 12px; color: #ccc; margin-top: 10px;"></div>
+    <p class="hint">💡  터치해도 아무일없다. .</p>
+    <div id="countInfo" style="font-size: 11px; color: #ccc; margin-top: 10px;"></div>
 </div>
 
 <script>
-    // ⚠️ 시트 주소 확인: [파일]-[공유]-[웹에 게시]-[TEPS 시트]-[CSV] 주소인지 다시 확인하세요!
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pub?gid=1625594237&single=true&output=csv";
+    // 1. 여기에 각 시트의 gid 번호를 넣으세요!
+    // 스프레드시트 주소창 끝의 gid=숫자 부분을 확인하시면 됩니다.
+    const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pub?output=csv&single=true&gid=";
+    
+    const SHEET_CONFIG = {
+        SPEAK: "1763303910",          // Sheet1의 gid
+        TEPS: "1625594237",  // Sheet2의 gid
+        CONV: "1117344476"    // Sheet3의 gid (직접 수정 필요!)
+    };
 
     let tepsList = [];
 
-    async function loadTeps() {
+    // 시트 변경 시 실행
+    function changeSheet() {
+        const selectedMode = document.getElementById('sheetSelect').value;
+        document.getElementById('modeTag').innerText = `${selectedMode} COURSE`;
+        loadData(SHEET_CONFIG[selectedMode]);
+    }
+
+    async function loadData(gid) {
         try {
-            const res = await fetch(CSV_URL);
-            // 한글 깨짐 방지를 위해 명시적으로 UTF-8로 텍스트를 읽습니다.
+            document.getElementById('enText').innerText = "데이터 로딩 중...";
+            document.getElementById('koText').style.display = 'none';
+            
+            const res = await fetch(BASE_URL + gid);
             const buffer = await res.arrayBuffer();
             const decoder = new TextDecoder('utf-8');
             const data = decoder.decode(buffer);
@@ -69,21 +94,18 @@
             const rows = data.split(/\r?\n/).filter(r => r.trim() !== "");
             
             tepsList = rows.slice(1).map(row => {
-                // CSV 파싱 시 쉼표 처리 로직 보강
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 return {
-                    en: cols[1]?.replace(/"/g, '').trim(),
-                    ko: cols[2]?.replace(/"/g, '').trim()
+                    en: cols[1]?.replace(/"/g, '').trim(), // B열 (index 1)
+                    ko: cols[2]?.replace(/"/g, '').trim()  // C열 (index 2)
                 };
-            }).filter(item => item.en && item.en.length > 2);
-
-            if (tepsList.length === 0) throw new Error("데이터가 비어있습니다.");
+            }).filter(item => item.en && item.en.length > 1);
 
             document.getElementById('countInfo').innerText = `Total: ${tepsList.length} sentences`;
             nextSentence();
         } catch (err) {
             console.error(err);
-            document.getElementById('enText').innerText = "❌ 데이터를 불러올 수 없습니다. CSV 주소를 확인해주세요.";
+            document.getElementById('enText').innerText = "❌ 데이터를 불러올 수 없습니다. GID를 확인해주세요.";
         }
     }
 
@@ -101,7 +123,8 @@
         ko.style.display = (ko.style.display === 'none' || ko.style.display === '') ? 'block' : 'none';
     }
 
-    loadTeps();
+    // 초기 실행 (SPEAK 모드로 시작)
+    loadData(SHEET_CONFIG.SPEAK);
 </script>
 
 </body>
