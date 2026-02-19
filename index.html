@@ -2,16 +2,16 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Education - TEPS Mode</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; }
-        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .container { width: 90%; max-width: 600px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; }
         h1 { color: var(--primary); font-size: 1.6rem; margin-bottom: 5px; letter-spacing: -1px; }
         .tag { display: inline-block; background: var(--primary); color: white; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; margin-bottom: 30px; }
         
-        /* 문장 카드 영역 */
         .sentence-card { 
             min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
             margin-bottom: 30px; padding: 30px; border-radius: 15px; background: #ffffff; 
@@ -24,7 +24,6 @@
         .english { font-size: 1.45rem; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
         .korean { font-size: 1.15rem; color: #7f8c8d; margin-top: 25px; font-weight: 500; display: none; padding-top: 20px; border-top: 1px dashed #ddd; width: 100%; }
         
-        /* 버튼 디자인 */
         .btn-next { 
             width: 100%; padding: 20px; font-size: 1.2rem; font-weight: bold; border: none; 
             border-radius: 12px; cursor: pointer; transition: 0.3s; 
@@ -43,7 +42,7 @@
     <div class="tag">TEPS COURSE</div>
     
     <div class="sentence-card" onclick="toggleAnswer()">
-        <div id="enText" class="english">Loading TEPS database...</div>
+        <div id="enText" class="english">데이터를 불러오는 중...</div>
         <div id="koText" class="korean"></div>
     </div>
 
@@ -54,23 +53,23 @@
 </div>
 
 <script>
-    /**
-     * ⚠️ 중요: 
-     * 구글 시트 웹 게시 시 [전체 문서]가 아닌 [TEPS] 시트를 선택하고 
-     * [CSV]로 게시한 주소를 아래에 넣으세요.
-     */
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pubhtml";
+    // ⚠️ 시트 주소 확인: [파일]-[공유]-[웹에 게시]-[TEPS 시트]-[CSV] 주소인지 다시 확인하세요!
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pub?gid=1625594237&single=true&output=csv";
 
     let tepsList = [];
 
     async function loadTeps() {
         try {
             const res = await fetch(CSV_URL);
-            const data = await res.text();
+            // 한글 깨짐 방지를 위해 명시적으로 UTF-8로 텍스트를 읽습니다.
+            const buffer = await res.arrayBuffer();
+            const decoder = new TextDecoder('utf-8');
+            const data = decoder.decode(buffer);
+            
             const rows = data.split(/\r?\n/).filter(r => r.trim() !== "");
             
-            // B열(1) 영어, C열(2) 해석 추출
             tepsList = rows.slice(1).map(row => {
+                // CSV 파싱 시 쉼표 처리 로직 보강
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 return {
                     en: cols[1]?.replace(/"/g, '').trim(),
@@ -78,25 +77,25 @@
                 };
             }).filter(item => item.en && item.en.length > 2);
 
+            if (tepsList.length === 0) throw new Error("데이터가 비어있습니다.");
+
             document.getElementById('countInfo').innerText = `Total: ${tepsList.length} sentences`;
             nextSentence();
         } catch (err) {
-            document.getElementById('enText').innerText = "❌ 연결 실패! CSV URL을 확인해주세요.";
+            console.error(err);
+            document.getElementById('enText').innerText = "❌ 데이터를 불러올 수 없습니다. CSV 주소를 확인해주세요.";
         }
     }
 
     function nextSentence() {
         if (tepsList.length === 0) return;
-
         const rand = Math.floor(Math.random() * tepsList.length);
         const item = tepsList[rand];
-
         document.getElementById('enText').innerText = item.en;
         document.getElementById('koText').innerText = item.ko;
-        document.getElementById('koText').style.display = 'none'; // 다음 버튼 누르면 해석 다시 숨김
+        document.getElementById('koText').style.display = 'none';
     }
 
-    // 카드 클릭 시 해석 토글
     function toggleAnswer() {
         const ko = document.getElementById('koText');
         ko.style.display = (ko.style.display === 'none' || ko.style.display === '') ? 'block' : 'none';
