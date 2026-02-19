@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Education - Smart Mode</title>
+    <title>English Study - Final</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; }
         body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
@@ -16,7 +16,6 @@
             background-color: #fff; color: var(--primary); font-weight: bold;
         }
 
-        /* 학습 모드 선택 버튼 스타일 */
         .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
         .mode-btn { 
             flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; 
@@ -26,15 +25,25 @@
 
         .tag { display: inline-block; background: #e9ecef; color: var(--primary); padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; margin-bottom: 15px; font-weight: 600; }
         
+        /* 문장 카드 스타일 */
         .sentence-card { 
-            min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
             margin-bottom: 25px; padding: 30px; border-radius: 15px; background: #ffffff; 
-            border: 1px solid #eee; cursor: pointer; transition: all 0.2s;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+            border: 2px solid #f1f1f1; cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         }
-        .sentence-card:hover { border-color: var(--accent); }
+        .sentence-card:hover { border-color: var(--accent); background: #fcfdfe; }
+        .sentence-card:active { transform: scale(0.98); }
+
         .english { font-size: 1.4rem; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
-        .korean { font-size: 1.1rem; color: #7f8c8d; margin-top: 25px; display: none; padding-top: 20px; border-top: 1px dashed #ddd; width: 100%; }
+        
+        /* C열 해석 스타일 - 처음엔 안 보임 */
+        .korean { 
+            font-size: 1.15rem; color: #576574; margin-top: 25px; 
+            display: none; /* 핵심: 처음엔 숨김 */
+            padding-top: 20px; border-top: 1px dashed #ddd; width: 100%; 
+            word-break: keep-all;
+        }
         
         .btn-next { 
             width: 100%; padding: 18px; font-size: 1.1rem; font-weight: bold; border: none; 
@@ -42,7 +51,7 @@
             background-color: var(--accent); color: white;
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
         }
-        .btn-next:hover { background-color: #2980b9; transform: translateY(-2px); }
+        .btn-next:hover { background-color: #2980b9; }
         .hint { margin-top: 15px; font-size: 0.85rem; color: #bbb; }
     </style>
 </head>
@@ -60,47 +69,43 @@
         <button id="btnRandom" class="mode-btn" onclick="setMode('random')">랜덤</button>
     </div>
 
-    <div id="modeTag" class="tag">SPEAK COURSE</div>
+    <div id="modeTag" class="tag">COURSE</div>
     
     <div class="sentence-card" onclick="toggleAnswer()">
-        <div id="enText" class="english">로딩 중...</div>
-        <div id="koText" class="korean"></div>
-    </div>
+        <div id="enText" class="english">데이터를 불러오는 중...</div>
+        <div id="koText" class="korean"></div> </div>
 
     <button class="btn-next" onclick="nextSentence()">NEXT SENTENCE</button>
     
-    <p class="hint">💡 카드를 터치하면 해석이 나타납니다.</p>
+    <p class="hint">💡 카드를 터치하면 C열의 해석이 나타납니다.</p>
     <div id="countInfo" style="font-size: 11px; color: #ccc; margin-top: 10px;"></div>
 </div>
 
 <script>
+    // 본인의 시트 주소 (변경 금지)
     const BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pub?output=csv&single=true&gid=";
     
+    // 시트별 gid 설정 (직접 확인하신 숫자로 바꾸세요)
     const SHEET_CONFIG = {
-        SPEAK: "1763303910",          // Sheet1 gid
-        TEPS: "1625594237",  // Sheet2 gid
+        SPEAK: "1763303910",          
+        TEPS: "1625594237",  
         CONV: "1117344476" 
     };
 
     let tepsList = [];
-    let currentIndex = -1; // 현재 몇 번째 문장인지 추적
-    let isRandom = false;  // 기본값은 '순서대로'
+    let currentIndex = -1;
+    let isRandom = false;
 
-    // 학습 모드 변경 (순서/랜덤)
     function setMode(mode) {
         isRandom = (mode === 'random');
         document.getElementById('btnOrder').classList.toggle('active', !isRandom);
         document.getElementById('btnRandom').classList.toggle('active', isRandom);
-        
-        // 모드 변경 시 처음부터 다시 시작하고 싶다면 아래 주석 해제
-        // currentIndex = -1;
-        // nextSentence();
     }
 
     function changeSheet() {
         const selectedMode = document.getElementById('sheetSelect').value;
         document.getElementById('modeTag').innerText = `${selectedMode} COURSE`;
-        currentIndex = -1; // 시트 바꿀 때 순서 초기화
+        currentIndex = -1;
         loadData(SHEET_CONFIG[selectedMode]);
     }
 
@@ -112,49 +117,55 @@
             const rows = data.split(/\r?\n/).filter(r => r.trim() !== "");
             
             tepsList = rows.slice(1).map(row => {
+                // CSV 쉼표 처리 로직
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 return {
-                    en: cols[1]?.replace(/"/g, '').trim(),
-                    ko: cols[2]?.replace(/"/g, '').trim()
+                    en: cols[1]?.replace(/"/g, '').trim(), // B열 (영어)
+                    ko: cols[2]?.replace(/"/g, '').trim()  // C열 (한글 해석)
                 };
             }).filter(item => item.en && item.en.length > 1);
 
             document.getElementById('countInfo').innerText = `Total: ${tepsList.length} sentences`;
             nextSentence();
         } catch (err) {
-            document.getElementById('enText').innerText = "❌ 데이터를 불러올 수 없습니다.";
+            document.getElementById('enText').innerText = "❌ 시트 데이터를 가져오지 못했습니다.";
         }
     }
 
     function nextSentence() {
         if (tepsList.length === 0) return;
 
+        // 새 문장이 나올 때 항상 해석은 다시 가림
+        document.getElementById('koText').style.display = 'none';
+
         if (isRandom) {
-            // 랜덤 모드
             currentIndex = Math.floor(Math.random() * tepsList.length);
         } else {
-            // 순서대로 모드
             currentIndex++;
             if (currentIndex >= tepsList.length) {
-                currentIndex = 0; // 마지막 문장 이후 다시 처음으로
-                alert("모든 문장을 학습했습니다. 처음부터 다시 시작합니다.");
+                currentIndex = 0;
+                alert("첫 문장으로 돌아갑니다.");
             }
         }
 
         const item = tepsList[currentIndex];
         document.getElementById('enText').innerText = item.en;
-        document.getElementById('koText').innerText = item.ko;
-        document.getElementById('koText').style.display = 'none';
+        document.getElementById('koText').innerText = item.ko; // C열 데이터 삽입
         
-        // 현재 번호 표시 (선택사항)
         document.getElementById('countInfo').innerText = `Progress: ${currentIndex + 1} / ${tepsList.length}`;
     }
 
+    // 카드 터치 시 해석 보이기/숨기기
     function toggleAnswer() {
         const ko = document.getElementById('koText');
-        ko.style.display = (ko.style.display === 'none' || ko.style.display === '') ? 'block' : 'none';
+        if (ko.style.display === 'none' || ko.style.display === '') {
+            ko.style.display = 'block';
+        } else {
+            ko.style.display = 'none';
+        }
     }
 
+    // 시작 시 SPEAK 모드 로드
     loadData(SHEET_CONFIG.SPEAK);
 </script>
 
