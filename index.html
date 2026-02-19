@@ -3,91 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Education - TEPS</title>
+    <title>English Education - TEPS Mode</title>
     <style>
-        :root { --primary-color: #2c3e50; --accent-color: #e67e22; --bg-color: #ecf0f1; }
-        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { width: 90%; max-width: 650px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        h1 { color: var(--primary-color); font-size: 1.8rem; margin-bottom: 10px; }
-        .subtitle { color: #7f8c8d; margin-bottom: 30px; font-weight: bold; }
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f8f9fa; }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { width: 90%; max-width: 600px; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; }
+        h1 { color: var(--primary); font-size: 1.6rem; margin-bottom: 5px; letter-spacing: -1px; }
+        .tag { display: inline-block; background: var(--primary); color: white; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; margin-bottom: 30px; }
         
-        .card { min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 30px; padding: 30px; border-radius: 15px; background: #f9f9f9; border: 2px solid #eee; transition: 0.3s; }
-        .english { font-size: 1.5rem; font-weight: 700; color: #2c3e50; line-height: 1.6; word-break: keep-all; }
-        .korean { font-size: 1.2rem; color: #e67e22; margin-top: 20px; font-weight: 500; display: none; border-top: 1px solid #ddd; pt: 15px; }
+        /* 문장 카드 영역 */
+        .sentence-card { 
+            min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            margin-bottom: 30px; padding: 30px; border-radius: 15px; background: #ffffff; 
+            border: 1px solid #eee; cursor: pointer; transition: all 0.2s;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+        .sentence-card:hover { border-color: var(--accent); background: #fdfdfd; }
+        .sentence-card:active { transform: scale(0.98); }
+
+        .english { font-size: 1.45rem; font-weight: 700; color: #333; line-height: 1.6; word-break: keep-all; }
+        .korean { font-size: 1.15rem; color: #7f8c8d; margin-top: 25px; font-weight: 500; display: none; padding-top: 20px; border-top: 1px dashed #ddd; width: 100%; }
         
-        button { width: 100%; padding: 18px; font-size: 1.1rem; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .btn-next { background-color: var(--primary-color); color: white; }
-        .btn-next:hover { background-color: #34495e; transform: translateY(-2px); }
-        .btn-show { background-color: #95a5a6; color: white; }
+        /* 버튼 디자인 */
+        .btn-next { 
+            width: 100%; padding: 20px; font-size: 1.2rem; font-weight: bold; border: none; 
+            border-radius: 12px; cursor: pointer; transition: 0.3s; 
+            background-color: var(--accent); color: white;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        .btn-next:hover { background-color: #2980b9; transform: translateY(-2px); }
         
-        .info { margin-top: 20px; font-size: 0.85rem; color: #bdc3c7; }
+        .hint { margin-top: 15px; font-size: 0.9rem; color: #bbb; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>English Education</h1>
-    <div class="subtitle">TEPS Course</div>
+    <div class="tag">TEPS COURSE</div>
     
-    <div class="card">
-        <div id="enText" class="english">Loading TEPS sentences...</div>
+    <div class="sentence-card" onclick="toggleAnswer()">
+        <div id="enText" class="english">Loading TEPS database...</div>
         <div id="koText" class="korean"></div>
     </div>
 
-    <button class="btn-show" onclick="toggleAnswer()">해석 확인 (Show Answer)</button>
-    <button class="btn-next" onclick="nextSentence()">다음 문장 (Random Next)</button>
+    <button class="btn-next" onclick="nextSentence()">NEXT SENTENCE</button>
     
-    <div id="stats" class="info">학습할 문장을 불러오는 중입니다.</div>
+    <p class="hint">💡 문장 카드를 터치하면 해석이 나타납니다.</p>
+    <div id="countInfo" style="font-size: 12px; color: #ccc; margin-top: 10px;"></div>
 </div>
 
 <script>
-    // 💡 위에서 복사한 'TEPS 시트 전용' CSV URL을 여기에 입력하세요.
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pub?output=csv";
+    /**
+     * ⚠️ 중요: 
+     * 구글 시트 웹 게시 시 [전체 문서]가 아닌 [TEPS] 시트를 선택하고 
+     * [CSV]로 게시한 주소를 아래에 넣으세요.
+     */
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbEvV2vslOXPfWW6ok1zl0i2Ctp-qwCYC9oPIcL3AdM7NC2zwvPTeLWxDQDiFH-fHqjPQhgY35Qw0M/pubhtml";
 
-    let tepsData = [];
+    let tepsList = [];
 
-    async function fetchTepsData() {
+    async function loadTeps() {
         try {
-            const response = await fetch(CSV_URL);
-            const data = await response.text();
+            const res = await fetch(CSV_URL);
+            const data = await res.text();
+            const rows = data.split(/\r?\n/).filter(r => r.trim() !== "");
             
-            // 행 분리 및 빈 줄 제거
-            const rows = data.split(/\r?\n/).filter(row => row.trim() !== "");
-            
-            // B열(인덱스 1)과 C열(인덱스 2) 파싱
-            tepsData = rows.slice(1).map(row => {
+            // B열(1) 영어, C열(2) 해석 추출
+            tepsList = rows.slice(1).map(row => {
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 return {
-                    english: cols[1]?.replace(/"/g, '').trim(),
-                    korean: cols[2]?.replace(/"/g, '').trim()
+                    en: cols[1]?.replace(/"/g, '').trim(),
+                    ko: cols[2]?.replace(/"/g, '').trim()
                 };
-            }).filter(item => item.english && item.english.length > 1);
+            }).filter(item => item.en && item.en.length > 2);
 
-            document.getElementById('stats').innerText = `총 ${tepsData.length}개의 문장이 준비되었습니다.`;
+            document.getElementById('countInfo').innerText = `Total: ${tepsList.length} sentences`;
             nextSentence();
-        } catch (error) {
-            document.getElementById('enText').innerText = "데이터 로딩 실패! 시트 설정을 확인해주세요.";
+        } catch (err) {
+            document.getElementById('enText').innerText = "❌ 연결 실패! CSV URL을 확인해주세요.";
         }
     }
 
     function nextSentence() {
-        if (tepsData.length === 0) return;
+        if (tepsList.length === 0) return;
 
-        // 랜덤 추출 로직
-        const randomIndex = Math.floor(Math.random() * tepsData.length);
-        const item = tepsData[randomIndex];
+        const rand = Math.floor(Math.random() * tepsList.length);
+        const item = tepsList[rand];
 
-        document.getElementById('enText').innerText = item.english;
-        document.getElementById('koText').innerText = item.korean;
-        document.getElementById('koText').style.display = 'none'; // 해석 숨김 초기화
+        document.getElementById('enText').innerText = item.en;
+        document.getElementById('koText').innerText = item.ko;
+        document.getElementById('koText').style.display = 'none'; // 다음 버튼 누르면 해석 다시 숨김
     }
 
+    // 카드 클릭 시 해석 토글
     function toggleAnswer() {
-        const koText = document.getElementById('koText');
-        koText.style.display = (koText.style.display === 'none') ? 'block' : 'none';
+        const ko = document.getElementById('koText');
+        ko.style.display = (ko.style.display === 'none' || ko.style.display === '') ? 'block' : 'none';
     }
 
-    fetchTepsData();
+    loadTeps();
 </script>
 
 </body>
